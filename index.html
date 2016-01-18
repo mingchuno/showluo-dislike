@@ -1,0 +1,133 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<title>羅志祥 Dislike Counter</title>
+<script type="text/javascript" src="https://code.jquery.com/jquery-1.8.3.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/jqplot/1.0.4/jquery.jqplot.min.js"></script>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_GB/sdk.js#xfbml=1&version=v2.5&appId=142297032629131";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+<style type="text/css">
+* { font-family: Helvetica, Arial, sans-serif; }
+body { margin: 30px auto; }
+#res { font-size: 72px; text-align: center; width: 826px; 
+	margin: 0 auto; padding: 10px 0 20px;
+ 	border: 1px solid #ccc; border-top: 0; 
+ 	position: relative; }
+#res b { font-size: 144px; letter-spacing: -5px; }
+.credit { font-size: 32px; }
+.explain { font-size: 16px; color: #999; }
+.center { text-align: center; }
+.fb-bgd { width: 100%; height: 313px; background-repeat: no-repeat; background-position: center;
+background-image: url("bg.png")
+}
+</style>
+<script type='text/javascript'>
+$(window).load(function () {
+function addCommas(nStr) {
+    nStr += '';
+    var x = nStr.split('.');
+    var x1 = x[0];
+    var x2 = x.length > 1 ? '.' + x[1] : '';
+    var rgx = /(\d+)(\d{3})/;
+    while (rgx.test(x1)) {
+        x1 = x1.replace(rgx, '$1' + ',' + '$2');
+    }
+    return x1 + x2;
+};
+
+function fetchLikeCount(){
+    return $.Deferred(function(defer){
+        $.ajax({
+            dataType: 'jsonp',
+            url: 'https://api.facebook.com/method/fql.query?callback=callback',
+            data: {
+                query: 'SELECT like_count FROM link_stat WHERE url="https://www.facebook.com/IsShow/"',
+                format: 'JSON'
+            }
+        }).then(function(res){
+            try{
+                var count = res[0].like_count;
+                defer.resolve(count);
+            }catch(e){
+                reject();
+            }
+        }, reject);
+        function reject(){
+            defer.reject(';(');
+        };
+    }).promise();
+};
+
+var failed = false;
+
+function start() {
+	var $res = $('#res');
+	fetchLikeCount().always(function(res){ // $url.val()
+		if (res == ';(') { failed = true; $('.explain').show(); }
+	    $res.html("<b>" + addCommas(res) + "</b> likes");
+    });
+    if (!failed) {
+		setTimeout(function() { start(); }, 2500);
+    }
+};
+/* initialize plot*/
+var plot1;
+var MaxPlotPoint = 50;
+
+function doUpdate() {
+
+    //var newVal = Math.floor(Math.random() * 100) + 10000
+    var newVal = parseInt($("#res b").html().replace(/,/g, ""));
+
+    storedData.push(newVal);
+
+    if (storedData.length > MaxPlotPoint) {
+        storedData.splice(0, 1);
+    }
+
+    renderGraph();
+    setTimeout(doUpdate, 2500)
+
+};
+
+
+var $res = $('#res');
+var initlikes;
+var storedData = [];
+fetchLikeCount().always(function (res) { // $url.val()
+    $res.html("<b>" + res + "</b> likes");
+    initlikes = parseInt($("#res b").html().replace(/,/g, ""));
+    for (var i = 0; i < MaxPlotPoint; i++) {
+        storedData.push(initlikes);
+    }
+    renderGraph();
+});
+
+function renderGraph() {
+    if (plot1) {
+        plot1.destroy();
+    }
+    plot1 = $.jqplot('chart1', [storedData]);
+};
+start();
+window.setTimeout( doUpdate, 1000 );      
+});
+</script>
+</head>
+<body>
+<div id="fb-root"></div>
+<div class="fb-bgd"></div>
+<div id="res"></div>
+<div class="explain center" style="display: none;">＊同一個 IP 睇太耐會觸發熔斷機制（Facebook 限制），歡迎稍後再來倒數＊</div>
+<h2>羅志祥 Dislike 2分鐘走勢圖</h2>
+<div class="center" id="chart1" style="height: 500px; width: 800px;"></div>
+<div class="center"><div class="fb-share-button" data-href="https://d1jj4o2siysomv.cloudfront.net/" data-layout="button_count"></div>
+<p> 原作: <a href="http://s3-ap-southeast-1.amazonaws.com/d74689/DislikeShowLo.html">http://s3-ap-southeast-1.amazonaws.com/d74689/DislikeShowLo.html</a></p>
+</div>
+</body>
+</html>
